@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#6c63ff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Xarajat">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Haftalik Xarajat</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--card:#21253a;
+  --accent:#6c63ff;--red:#ff6584;--green:#43e97b;
+  --yellow:#f9c74f;--purple:#c77dff;--blue:#4cc9f0;
+  --text:#e8eaf6;--muted:#8b90b0;--border:#2e3250;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif}
+body{display:flex;flex-direction:column;height:100dvh}
+
+/* STATUS BAR */
+.sb{height:var(--safe-top);background:var(--bg);flex-shrink:0}
+
+/* TOP BAR */
+.topbar{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:13px 18px 11px;display:flex;align-items:center;
+  justify-content:space-between;flex-shrink:0
+}
+.topbar-title{font-size:17px;font-weight:800;letter-spacing:-.02em}
+.topbar-week{font-size:10px;color:var(--muted);background:var(--card);padding:4px 10px;border-radius:20px}
+
+/* SCROLL */
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 20px}
+
+/* PAGE */
+.page{display:none}.page.active{display:block}
+
+/* CARDS */
+.sec{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-bottom:9px;padding-left:2px}
+
+.summary-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:14px}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:12px 10px;text-align:center}
+.sc-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.sc-val{font-size:13px;font-weight:800}
+.sc.inc .sc-val{color:var(--green)}.sc.day .sc-val{color:var(--accent)}.sc.sav .sc-val{color:var(--yellow)}
+
+/* SPEND BAR */
+.spendbar{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:14px;margin-bottom:14px}
+.spendbar-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.spendbar-title{font-size:12px;font-weight:600}
+.spendbar-pct{font-size:10px;background:var(--card);padding:3px 8px;border-radius:10px;color:var(--muted)}
+.track{height:9px;background:var(--card);border-radius:5px;overflow:hidden;margin-bottom:7px}
+.fill{height:100%;border-radius:5px;transition:width .4s ease;background:linear-gradient(90deg,var(--accent),var(--green))}
+.fill.warn{background:linear-gradient(90deg,var(--yellow),var(--red))}
+.spendbar-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+
+/* DAYS TABLE */
+.dtable{background:var(--surface);border:1px solid var(--border);border-radius:13px;overflow:hidden;margin-bottom:14px}
+.dhead{display:grid;grid-template-columns:1.3fr 1fr 1.1fr 1fr;background:var(--card);padding:8px 13px;
+  font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);border-bottom:1px solid var(--border)}
+.drow{display:grid;grid-template-columns:1.3fr 1fr 1.1fr 1fr;padding:10px 13px;
+  font-size:12px;border-bottom:1px solid var(--border);align-items:center}
+.drow:last-child{border-bottom:none}
+.drow.today .dname{color:var(--accent)}
+.dname{font-weight:700;font-size:11px}
+.dbudget{color:var(--accent);font-weight:600;font-size:11px}
+.dinput{
+  background:var(--card);border:1px solid var(--border);border-radius:6px;
+  color:var(--red);font-size:11px;font-family:'Inter',sans-serif;font-weight:600;
+  width:64px;outline:none;padding:4px 6px;-webkit-appearance:none;appearance:none
+}
+.dinput:focus{border-color:var(--accent)}
+.dleft{font-weight:700;font-size:11px;text-align:right}
+.pos{color:var(--green)}.neg{color:var(--red)}
+
+/* INSTALL BANNER */
+.install-banner{
+  background:linear-gradient(135deg,#6c63ff22,#c77dff22);
+  border:1px solid var(--accent);border-radius:13px;
+  padding:12px 14px;margin-bottom:14px;
+  display:flex;align-items:center;gap:10px
+}
+.install-banner.hidden{display:none}
+.ib-text{flex:1}.ib-text strong{font-size:13px;display:block;margin-bottom:2px}
+.ib-text span{font-size:10px;color:var(--muted)}
+.ib-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 13px;
+  font-size:12px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;flex-shrink:0}
+.ib-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px}
+
+/* TIP */
+.tip{background:#1e2240;border:1px solid #2e3a70;border-radius:11px;
+  padding:11px 13px;font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:8px}
+.tip strong{color:var(--accent)}
+
+/* CATEGORIES */
+.cats{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.cc{background:var(--surface);border:1px solid var(--border);border-radius:13px;
+  padding:12px 13px;display:flex;align-items:center;gap:11px}
+.cc-icon{font-size:19px;width:34px;text-align:center;flex-shrink:0}
+.cc-info{flex:1;min-width:0}
+.cc-name{font-size:13px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-bar{height:4px;background:var(--card);border-radius:2px;overflow:hidden}
+.cc-fill{height:100%;border-radius:2px}
+.cc-amt{text-align:right;flex-shrink:0}
+.cc-sum{font-size:13px;font-weight:700}
+.cc-pct{font-size:9px;color:var(--muted);text-align:right}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.stc{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:14px 13px}
+.stc-icon{font-size:22px;margin-bottom:7px}
+.stc-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px}
+.stc-val{font-size:15px;font-weight:800}
+
+/* SETTINGS */
+.slist{background:var(--surface);border:1px solid var(--border);border-radius:13px;overflow:hidden;margin-bottom:14px}
+.srow{display:flex;align-items:center;padding:13px 15px;border-bottom:1px solid var(--border);gap:11px}
+.srow:last-child{border-bottom:none}
+.srow-icon{font-size:18px;width:30px;text-align:center}
+.srow-info{flex:1}.srow-name{font-size:13px;font-weight:600}.srow-desc{font-size:10px;color:var(--muted)}
+.sinput{
+  background:var(--card);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-size:13px;font-family:'Inter',sans-serif;font-weight:600;
+  width:105px;outline:none;padding:6px 9px;text-align:right;-webkit-appearance:none
+}
+.sinput:focus{border-color:var(--accent)}
+.reset-btn{
+  width:100%;background:#ff658422;border:1px solid var(--red);border-radius:12px;
+  color:var(--red);font-size:14px;font-weight:700;font-family:'Inter',sans-serif;
+  padding:13px;cursor:pointer;margin-bottom:10px
+}
+
+/* BOTTOM NAV */
+.botnav{
+  background:var(--surface);border-top:1px solid var(--border);
+  display:flex;padding-bottom:var(--safe-bottom);flex-shrink:0
+}
+.nbtn{
+  flex:1;padding:10px 6px;text-align:center;cursor:pointer;
+  border:none;background:none;color:var(--muted);font-family:'Inter',sans-serif;
+  transition:background .1s
+}
+.nbtn.active{color:var(--accent)}
+.nbtn:active{background:var(--card)}
+.nbtn-icon{font-size:19px;display:block;margin-bottom:2px}
+.nbtn-lbl{font-size:10px;font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="sb"></div>
+
+<div class="topbar">
+  <div class="topbar-title">💰 Xarajat</div>
+  <div class="topbar-week" id="weekLabel">—</div>
+</div>
+
+<div class="scroll" id="scrollArea">
+
+  <!-- HOME PAGE -->
+  <div class="page active" id="page-home">
+
+    <div class="install-banner hidden" id="installBanner">
+      <div>📲</div>
+      <div class="ib-text">
+        <strong>Ilovani o'rnatish</strong>
+        <span>Telefon ekraniga qo'shish</span>
+      </div>
+      <button class="ib-btn" id="installBtn">O'rnatish</button>
+      <button class="ib-close" id="closeBanner">✕</button>
+    </div>
+
+    <div class="summary-row">
+      <div class="sc inc"><div class="sc-lbl">Maosh</div><div class="sc-val" id="incomeDisp">—</div></div>
+      <div class="sc day"><div class="sc-lbl">Kunlik</div><div class="sc-val" id="dailyDisp">—</div></div>
+      <div class="sc sav"><div class="sc-lbl">Jamg'arma</div><div class="sc-val" id="savDisp">—</div></div>
+    </div>
+
+    <div class="spendbar">
+      <div class="spendbar-top">
+        <span class="spendbar-title">Haftalik sarflov</span>
+        <span class="spendbar-pct" id="spentPct">0%</span>
+      </div>
+      <div class="track"><div class="fill" id="spentFill" style="width:0%"></div></div>
+      <div class="spendbar-labels">
+        <span id="spentLbl">Sarflandi: 0</span>
+        <span id="remainLbl">Qoldi: 0</span>
+      </div>
+    </div>
+
+    <div class="sec">Kunlik xarajatni kiriting</div>
+    <div class="dtable">
+      <div class="dhead">
+        <span>Kun</span><span>Limit</span><span>Sarflandi</span><span style="text-align:right">Qoldi</span>
+      </div>
+      <div id="daysContainer"></div>
+    </div>
+
+    <div class="tip">💡 <strong>Maslahat:</strong> Har kuni xarajatingizni kiriting — barcha ma'lumotlar telefoningizda saqlanadi, internet shart emas.</div>
+  </div>
+
+  <!-- CATEGORIES PAGE -->
+  <div class="page" id="page-cats">
+    <div class="sec">Xarajat kategoriyalari (haftalik)</div>
+    <div class="cats" id="catsContainer"></div>
+  </div>
+
+  <!-- STATS PAGE -->
+  <div class="page" id="page-stats">
+    <div class="sec">Bu hafta natijasi</div>
+    <div class="stats-grid" id="statsGrid"></div>
+    <div class="sec">Kunlik tafsilot</div>
+    <div class="dtable" id="statsTable"></div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="page" id="page-settings">
+    <div class="sec">Sozlamalar</div>
+    <div class="slist">
+      <div class="srow">
+        <div class="srow-icon">💵</div>
+        <div class="srow-info"><div class="srow-name">Haftalik maosh</div><div class="srow-desc">So'mda kiriting</div></div>
+        <input class="sinput" type="number" id="incomeInput" value="1500000" inputmode="numeric">
+      </div>
+      <div class="srow">
+        <div class="srow-icon">🏦</div>
+        <div class="srow-info"><div class="srow-name">Jamg'arma %</div><div class="srow-desc">Foizda (masalan: 20)</div></div>
+        <input class="sinput" type="number" id="savPctInput" value="20" min="0" max="80" inputmode="numeric">
+      </div>
+    </div>
+    <button class="reset-btn" id="resetBtn">🔄 Haftani noldan boshlash</button>
+    <div class="tip">💡 <strong>Eslatma:</strong> Sozlamalar o'zgartirilsa, avtomatik yangilanadi. Haftani noldan boshlash oldingi xarajatlarni o'chiradi.</div>
+  </div>
+
+</div>
+
+<div class="botnav">
+  <button class="nbtn active" onclick="goPage('home',this)">
+    <span class="nbtn-icon">🏠</span><span class="nbtn-lbl">Bosh</span>
+  </button>
+  <button class="nbtn" onclick="goPage('cats',this)">
+    <span class="nbtn-icon">📊</span><span class="nbtn-lbl">Kategoriya</span>
+  </button>
+  <button class="nbtn" onclick="goPage('stats',this)">
+    <span class="nbtn-icon">📈</span><span class="nbtn-lbl">Statistika</span>
+  </button>
+  <button class="nbtn" onclick="goPage('settings',this)">
+    <span class="nbtn-icon">⚙️</span><span class="nbtn-lbl">Sozlamalar</span>
+  </button>
+</div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────
+let S = JSON.parse(localStorage.getItem('xarajat2') || 'null') || {
+  income: 1500000, savPct: 20, expenses: [0,0,0,0,0,0,0]
+};
+const save = () => localStorage.setItem('xarajat2', JSON.stringify(S));
+
+// ── COMPUTED ──────────────────────────────────────────────
+const savings = () => Math.round(S.income * S.savPct / 100);
+const spendable = () => S.income - savings();
+const dailyBudget = () => Math.round(spendable() / 7);
+const totalSpent = () => S.expenses.reduce((a,b)=>a+b,0);
+
+// ── DAYS ──────────────────────────────────────────────────
+const DAYS = ["Dushanba","Seshanba","Chorshanba","Payshanba","Juma","Shanba","Yakshanba"];
+const todayRaw = new Date().getDay();
+const todayIdx = todayRaw === 0 ? 6 : todayRaw - 1;
+
+function renderDays() {
+  const c = document.getElementById('daysContainer');
+  const db = dailyBudget();
+  c.innerHTML = '';
+  DAYS.forEach((name, i) => {
+    const exp = S.expenses[i] || 0;
+    const left = db - exp;
+    const r = document.createElement('div');
+    r.className = 'drow' + (i === todayIdx ? ' today' : '');
+    r.innerHTML =
+      '<div class="dname">' + (i===todayIdx?'&#9654; ':'') + name + '</div>' +
+      '<div class="dbudget">' + db.toLocaleString() + '</div>' +
+      '<div><input class="dinput" type="number" inputmode="numeric" value="' + (exp||'') + '" placeholder="0" data-i="' + i + '"></div>' +
+      '<div class="dleft ' + (left>=0?'pos':'neg') + '" id="dleft-' + i + '">' + left.toLocaleString() + '</div>';
+    c.appendChild(r);
+  });
+  c.querySelectorAll('.dinput').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const idx = +e.target.dataset.i;
+      S.expenses[idx] = parseInt(e.target.value)||0;
+      save();
+      const db2 = dailyBudget();
+      const left2 = db2 - S.expenses[idx];
+      const leftEl = document.getElementById('dleft-' + idx);
+      if (leftEl) {
+        leftEl.textContent = left2.toLocaleString();
+        leftEl.className = 'dleft ' + (left2 >= 0 ? 'pos' : 'neg');
+      }
+      updateBar();
+      updateSummary();
+    });
+  });
+}
+
+// ── SUMMARY & BAR ─────────────────────────────────────────
+function updateSummary() {
+  const spent = totalSpent();
+  const rem = Math.max(0, spendable() - spent);
+  const totalSav = savings() + rem;
+  document.getElementById('incomeDisp').textContent = S.income.toLocaleString();
+  document.getElementById('dailyDisp').textContent = dailyBudget().toLocaleString();
+  document.getElementById('savDisp').textContent = totalSav.toLocaleString();
+}
+
+function updateBar() {
+  const spent = totalSpent();
+  const sp = spendable();
+  const pct = Math.min(100, Math.round(spent/sp*100));
+  const rem = sp - spent;
+  const fill = document.getElementById('spentFill');
+  fill.style.width = pct + '%';
+  fill.className = 'fill' + (pct > 75 ? ' warn' : '');
+  document.getElementById('spentPct').textContent = pct + '%';
+  document.getElementById('spentLbl').textContent = 'Sarflandi: ' + spent.toLocaleString();
+  document.getElementById('remainLbl').textContent = 'Qoldi: ' + Math.max(0,rem).toLocaleString();
+}
+
+// ── CATEGORIES ────────────────────────────────────────────
+const CATS = [
+  {icon:"🍽️", name:"Oziq-ovqat",       desc:"Non, bozor, kafe",             amt:420000, color:"#f9c74f"},
+  {icon:"🚌", name:"Transport",          desc:"Metro, avtobus, taksi",         amt:180000, color:"#6c63ff"},
+  {icon:"💡", name:"Kommunal",           desc:"Gaz, elektr, suv (ulush)",      amt:150000, color:"#43e97b"},
+  {icon:"📱", name:"Telefon / Internet", desc:"Mobil to'lov, internet",        amt:80000,  color:"#4cc9f0"},
+  {icon:"🛍️", name:"Kiyim / Ehtiyoj",  desc:"Maishiy zaruriyat",             amt:120000, color:"#ff6584"},
+  {icon:"🎮", name:"Ko'ngil ochar",      desc:"Kino, kafe, hobbi",             amt:100000, color:"#f77f00"},
+  {icon:"💊", name:"Sog'liq",            desc:"Dori, shifokor",                amt:50000,  color:"#90e0ef"},
+  {icon:"💸", name:"Qo'shimcha xarajat", desc:"Kutilmagan kunlik xarajatlar",  amt:100000, color:"#c77dff"},
+  {icon:"🏦", name:"Jamg'arma",          desc:"20% — tejamasiz tejalmaydi",    amt:300000, color:"#b5e48c"},
+];
+
+function renderCats() {
+  const c = document.getElementById('catsContainer');
+  c.innerHTML = '';
+  CATS.forEach(cat => {
+    const pct = Math.round(cat.amt / S.income * 100);
+    const d = document.createElement('div');
+    d.className = 'cc';
+    d.innerHTML = `
+      <div class="cc-icon">${cat.icon}</div>
+      <div class="cc-info">
+        <div class="cc-name">${cat.name}</div>
+        <div class="cc-bar"><div class="cc-fill" style="width:${pct}%;background:${cat.color}"></div></div>
+      </div>
+      <div class="cc-amt">
+        <div class="cc-sum" style="color:${cat.color}">${cat.amt.toLocaleString()}</div>
+        <div class="cc-pct">${pct}%</div>
+      </div>`;
+    c.appendChild(d);
+  });
+}
+
+// ── STATS ─────────────────────────────────────────────────
+function renderStats() {
+  const spent = totalSpent();
+  const sp = spendable();
+  const db = dailyBudget();
+  const active = S.expenses.filter(e=>e>0);
+  const avg = active.length ? Math.round(spent/active.length) : 0;
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stc"><div class="stc-icon">💸</div><div class="stc-lbl">Jami sarflandi</div><div class="stc-val" style="color:#ff6584">${spent.toLocaleString()}</div></div>
+    <div class="stc"><div class="stc-icon">✅</div><div class="stc-lbl">Qolgan mablag'</div><div class="stc-val" style="color:#43e97b">${Math.max(0,sp-spent).toLocaleString()}</div></div>
+    <div class="stc"><div class="stc-icon">📅</div><div class="stc-lbl">O'rtacha / kun</div><div class="stc-val" style="color:#6c63ff">${avg.toLocaleString()}</div></div>
+    <div class="stc"><div class="stc-icon">🏦</div><div class="stc-lbl">Jamg'arma (reja)</div><div class="stc-val" style="color:#f9c74f">${savings().toLocaleString()}</div></div>`;
+
+  const t = document.getElementById('statsTable');
+  t.innerHTML = '<div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;background:var(--card);padding:8px 13px;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);border-bottom:1px solid var(--border)"><span>Kun</span><span style="text-align:center">Sarflandi</span><span style="text-align:center">Qoldi</span></div>' +
+  DAYS.map((name,i)=>{
+    const exp = S.expenses[i]||0;
+    const left = db - exp;
+    return '<div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;padding:10px 13px;border-bottom:1px solid var(--border);font-size:12px;align-items:center">' +
+      '<span style="font-weight:700">' + name + '</span>' +
+      '<span style="color:' + (exp>0?'#ff6584':'var(--muted)') + ';text-align:center;font-weight:600">−' + exp.toLocaleString() + '</span>' +
+      '<span style="color:' + (left>=0?'#43e97b':'#ff6584') + ';text-align:center;font-weight:700">' + left.toLocaleString() + '</span>' +
+      '</div>';
+  }).join('');
+}
+
+// ── PAGE NAV ──────────────────────────────────────────────
+function goPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('scrollArea').scrollTop = 0;
+  if (name==='cats') renderCats();
+  if (name==='stats') renderStats();
+}
+
+// ── SETTINGS ──────────────────────────────────────────────
+document.getElementById('incomeInput').addEventListener('input', e=>{
+  S.income = parseInt(e.target.value)||1500000; save();
+  updateSummary(); updateBar(); renderDays();
+});
+document.getElementById('savPctInput').addEventListener('input', e=>{
+  S.savPct = parseInt(e.target.value)||20; save();
+  updateSummary(); updateBar(); renderDays();
+});
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  if(confirm('Haftaning barcha xarajatlarini o\'chirmoqchimisiz?')){
+    S.expenses = [0,0,0,0,0,0,0]; save();
+    renderDays(); updateSummary(); updateBar();
+    goPage('home', document.querySelector('.nbtn'));
+  }
+});
+
+// ── WEEK LABEL ────────────────────────────────────────────
+function setWeekLabel(){
+  const d = new Date();
+  const mon = new Date(d);
+  mon.setDate(d.getDate()-(d.getDay()===0?6:d.getDay()-1));
+  const sat = new Date(mon); sat.setDate(mon.getDate()+6);
+  const f = dt => `${dt.getDate()}-${dt.toLocaleString('uz',{month:'short'})}`;
+  document.getElementById('weekLabel').textContent = `${f(mon)} – ${f(sat)}`;
+}
+
+// ── PWA INSTALL ───────────────────────────────────────────
+let dPrompt;
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault(); dPrompt = e;
+  document.getElementById('installBanner').classList.remove('hidden');
+});
+document.getElementById('installBtn').addEventListener('click', async ()=>{
+  if(dPrompt){ dPrompt.prompt(); await dPrompt.userChoice; dPrompt=null; }
+  document.getElementById('installBanner').classList.add('hidden');
+});
+document.getElementById('closeBanner').addEventListener('click', ()=>{
+  document.getElementById('installBanner').classList.add('hidden');
+});
+
+// ── SERVICE WORKER ────────────────────────────────────────
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+// ── INIT ──────────────────────────────────────────────────
+document.getElementById('incomeInput').value = S.income;
+document.getElementById('savPctInput').value = S.savPct;
+setWeekLabel();
+renderDays();
+updateSummary();
+updateBar();
+</script>
+</body>
+</html>
